@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from .database import engine
 from . import models
-from .routers import societies, events
+from .routers import societies, events, users, auth
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -21,3 +21,5 @@ def root():
 
 app.include_router(societies.router)
 app.include_router(events.router)
+app.include_router(users.router)
+app.include_router(auth.router)

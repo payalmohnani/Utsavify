@@ -49,11 +49,13 @@ class EventOut(Event):
 class UserBase(BaseModel):
     first_name : str
     last_name : str
-    email_id: EmailStr
+    email_id: EmailStr    
+    display_name : str
 
 
 class UserCreate(UserBase):
     password: str
+    college_roll_no : int
 
     class Config:
         orm_mode = True
