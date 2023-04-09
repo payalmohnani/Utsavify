@@ -12,6 +12,7 @@ class SocietyBase(BaseModel):
 class Society(SocietyBase):
     id : int
     created_at : datetime
+    creator_id : int
     class Config:
         orm_made = True 
 
@@ -19,7 +20,8 @@ class SocietyCreate(SocietyBase):
     class Config:
         orm_made = True 
 
-class SocietyOut(Society):
+class SocietyOut(SocietyBase):
+    id : int
     class Config:
         orm_mode = True
 

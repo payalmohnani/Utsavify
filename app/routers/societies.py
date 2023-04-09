@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from ..database import get_db
-from .. import models, schemas
+from .. import models, schemas, oauth2
 
 
 router = APIRouter(prefix="/society", tags=["Societies"])
@@ -11,8 +11,8 @@ router = APIRouter(prefix="/society", tags=["Societies"])
 # Create
 # should be an Admin work
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=schemas.SocietyOut)
-def create_society(society: schemas.SocietyCreate, db: Session = Depends(get_db)):
-    new_society = models.Society(**society.dict())
+def create_society(society: schemas.SocietyCreate, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
+    new_society = models.Society(creator_id=current_user.id,**society.dict())
 
     # name already in db
 
@@ -46,7 +46,7 @@ def get_society_by_id(id: int, db: Session = Depends(get_db)):
 
 # Update
 @router.put("/{id}", status_code = status.HTTP_202_ACCEPTED, response_model = schemas.SocietyOut)
-def update_society(id: int, updated_society: schemas.SocietyCreate, db: Session = Depends(get_db)):
+def update_society(id: int, updated_society: schemas.SocietyCreate, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
 
     society_query = db.query(models.Society).filter(models.Society.id == id)
 
@@ -55,6 +55,10 @@ def update_society(id: int, updated_society: schemas.SocietyCreate, db: Session 
     if not society:
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,
                             detail = f"Society with id {id} not found")
+
+    if society.creator_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail = f"Not authorized to perform the requested operation")
 
     # Restricting society name change
     if str(society.name).lower() != str(updated_society.name).lower():
@@ -71,7 +75,7 @@ def update_society(id: int, updated_society: schemas.SocietyCreate, db: Session 
 # Admin work
 # Delete
 @router.delete("/{id}", status_code= status.HTTP_204_NO_CONTENT)
-def delete_society(id: int, db : Session = Depends(get_db)):
+def delete_society(id: int, db : Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
     
     society_query = db.query(models.Society).filter(models.Society.id == id)
     society = society_query.first()
@@ -80,6 +84,10 @@ def delete_society(id: int, db : Session = Depends(get_db)):
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,
                             detail = f"post with id {id} not found.")
     
+    if society.creator_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail = "Not Authorized to perform the operation.")
+
     society_query.delete(synchronize_session="fetch")
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

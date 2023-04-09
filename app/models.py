@@ -14,8 +14,8 @@ class Society(Base):
     college_level = Column(Boolean, nullable=False, server_default='False') 
     convenor = Column(String, nullable=False)
     gen_sec = Column(String, nullable=False)
+    creator_id = Column(Integer, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
-
     events = relationship("Event", back_populates = "organizer")
     
 
