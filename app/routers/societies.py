@@ -10,17 +10,21 @@ router = APIRouter(prefix="/society", tags=["Societies"])
 
 # Create
 # should be an Admin work
+
+
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=schemas.SocietyOut)
-def create_society(society: schemas.SocietyCreate, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
-    new_society = models.Society(creator_id=current_user.id,**society.dict())
+def create_society(society: schemas.SocietyCreate, db: Session = Depends(get_db), current_user=Depends(oauth2.get_current_user)):
+    new_society = models.Society(creator_id=current_user.id, **society.dict())
 
     # name already in db
 
-    existing_society = db.query(models.Society).filter(func.lower(models.Society.name) == func.lower(new_society.name)).first()
+    existing_society = db.query(models.Society).filter(func.lower(
+        models.Society.name) == func.lower(new_society.name)).first()
 
     # print(existing_society,"\n\n")
     if existing_society:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail= f"Society with the name {new_society.name} already exists. Try using a different name.")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Society with the name {new_society.name} already exists. Try using a different name.")
 
     db.add(new_society)
     db.commit()
@@ -28,65 +32,73 @@ def create_society(society: schemas.SocietyCreate, db: Session = Depends(get_db)
     return new_society
 
 # Read
+
+
 @router.get("", response_model=List[schemas.SocietyOut])
 def get_society(db: Session = Depends(get_db)):
     societies = db.query(models.Society).all()
     return societies
 
 # Read
-@router.get("/{id}", status_code = status.HTTP_302_FOUND, response_model=schemas.SocietyOut)
+
+
+@router.get("/{id}", status_code=status.HTTP_302_FOUND, response_model=schemas.SocietyOut)
 def get_society_by_id(id: int, db: Session = Depends(get_db)):
-    society = db.query(models.Society).filter(models.Society.id == id).first() 
-    
+    society = db.query(models.Society).filter(models.Society.id == id).first()
+
     if not society:
-        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,
-                            detail = f"Society with id {id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Society with id {id} not found")
 
     return society
 
 # Update
-@router.put("/{id}", status_code = status.HTTP_202_ACCEPTED, response_model = schemas.SocietyOut)
-def update_society(id: int, updated_society: schemas.SocietyCreate, db: Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
+
+
+@router.put("/{id}", status_code=status.HTTP_202_ACCEPTED, response_model=schemas.SocietyOut)
+def update_society(id: int, updated_society: schemas.SocietyCreate, db: Session = Depends(get_db), current_user=Depends(oauth2.get_current_user)):
 
     society_query = db.query(models.Society).filter(models.Society.id == id)
 
     society = society_query.first()
 
     if not society:
-        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,
-                            detail = f"Society with id {id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Society with id {id} not found")
 
     if society.creator_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail = f"Not authorized to perform the requested operation")
+                            detail=f"Not authorized to perform the requested operation")
 
     # Restricting society name change
     if str(society.name).lower() != str(updated_society.name).lower():
-        raise HTTPException(status_code = status.HTTP_409_CONFLICT,
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Name of the society cannot be changed")
-    
+
     updated_society.name = society.name
     society_query.update(updated_society.dict(), synchronize_session=False)
     db.commit()
     db.refresh(society)
-    
+
     return society
 
 # Admin work
 # Delete
-@router.delete("/{id}", status_code= status.HTTP_204_NO_CONTENT)
-def delete_society(id: int, db : Session = Depends(get_db), current_user = Depends(oauth2.get_current_user)):
-    
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_society(id: int, db: Session = Depends(get_db), current_user=Depends(oauth2.get_current_user)):
+
     society_query = db.query(models.Society).filter(models.Society.id == id)
     society = society_query.first()
 
     if not society:
-        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,
-                            detail = f"post with id {id} not found.")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id {id} not found.")
+
     if society.creator_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail = "Not Authorized to perform the operation.")
+                            detail="Not Authorized to perform the operation.")
 
     society_query.delete(synchronize_session="fetch")
     db.commit()
